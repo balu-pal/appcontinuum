@@ -5,8 +5,8 @@ import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.whenever
 import io.barinek.continuum.TestControllerSupport
-import io.barinek.continuum.TestDataSourceConfig
 import io.barinek.continuum.TestScenarioSupport
+import io.barinek.continuum.jdbcsupport.DataSourceConfig
 import io.barinek.continuum.jdbcsupport.JdbcTemplate
 import io.barinek.continuum.restsupport.BasicApp
 import io.barinek.continuum.timesheets.*
@@ -19,19 +19,22 @@ import java.time.LocalDate
 import kotlin.test.assertEquals
 
 class TimeEntryControllerTest : TestControllerSupport() {
+    val dataSource = DataSourceConfig().createDataSource("timesheets")
     val client = mock<ProjectClient>()
 
     internal var app: BasicApp = object : BasicApp() {
         override fun getPort() = 8081
 
         override fun handlerList() = HandlerList().apply {
-            val dataSource = TestDataSourceConfig().dataSource
             addHandler(TimeEntryController(mapper, TimeEntryDataGateway(JdbcTemplate(dataSource)), client))
         }
     }
 
     @Before
     fun setUp() {
+        JdbcTemplate(dataSource).apply {
+            execute("delete from time_entries")
+        }
         app.start()
     }
 
@@ -42,7 +45,7 @@ class TimeEntryControllerTest : TestControllerSupport() {
 
     @Test
     fun testCreate() {
-        TestScenarioSupport().loadTestScenario("jacks-test-scenario")
+        TestScenarioSupport(dataSource).loadTestScenario("jacks-test-scenario")
 
         whenever(client.getProject(any())).thenReturn(ProjectInfo(true, true))
 
@@ -59,7 +62,7 @@ class TimeEntryControllerTest : TestControllerSupport() {
 
     @Test
     fun testFailedCreate() {
-        TestScenarioSupport().loadTestScenario("jacks-test-scenario")
+        TestScenarioSupport(dataSource).loadTestScenario("jacks-test-scenario")
 
         whenever(client.getProject(any())).thenReturn(ProjectInfo(true, false))
 
@@ -70,7 +73,7 @@ class TimeEntryControllerTest : TestControllerSupport() {
 
     @Test
     fun testFind() {
-        TestScenarioSupport().loadTestScenario("jacks-test-scenario")
+        TestScenarioSupport(dataSource).loadTestScenario("jacks-test-scenario")
 
         val response = template.get("http://localhost:8081/time-entries", "application/json", BasicNameValuePair("userId", "4765"))
         val stories: List<TimeEntryInfo> = mapper.readValue(response, object : TypeReference<List<TimeEntryInfo>>() {})

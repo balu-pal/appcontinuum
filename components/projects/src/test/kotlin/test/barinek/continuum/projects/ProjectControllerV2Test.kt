@@ -2,8 +2,8 @@ package test.barinek.continuum.projects
 
 import com.fasterxml.jackson.core.type.TypeReference
 import io.barinek.continuum.TestControllerSupport
-import io.barinek.continuum.TestDataSourceConfig
 import io.barinek.continuum.TestScenarioSupport
+import io.barinek.continuum.jdbcsupport.DataSourceConfig
 import io.barinek.continuum.jdbcsupport.JdbcTemplate
 import io.barinek.continuum.projects.ProjectControllerV2
 import io.barinek.continuum.projects.ProjectDataGateway
@@ -18,18 +18,24 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ProjectControllerV2Test : TestControllerSupport() {
+    val dataSource = DataSourceConfig().createDataSource("registration")
+
     internal var app: BasicApp = object : BasicApp() {
 
         override fun getPort() = 8081
 
         override fun handlerList() = HandlerList().apply {
-            val dataSource = TestDataSourceConfig().dataSource
             addHandler(ProjectControllerV2(mapper, ProjectDataGateway(JdbcTemplate(dataSource))))
         }
     }
 
     @Before
     fun setUp() {
+        JdbcTemplate(dataSource).apply {
+            execute("delete from projects")
+            execute("delete from accounts")
+            execute("delete from users")
+        }
         app.start()
     }
 
@@ -41,7 +47,7 @@ class ProjectControllerV2Test : TestControllerSupport() {
 
     @Test
     fun testCreate() {
-        TestScenarioSupport().loadTestScenario("jacks-test-scenario")
+        TestScenarioSupport(dataSource).loadTestScenario("jacks-test-scenario")
 
         val json = "{\"accountId\":1673,\"name\":\"aProject\",\"active\":true,\"funded\":true}"
         val response = template.post("http://localhost:8081/projects", "application/vnd.appcontinuum.v2+json", json)
@@ -56,7 +62,7 @@ class ProjectControllerV2Test : TestControllerSupport() {
 
     @Test
     fun testList() {
-        TestScenarioSupport().loadTestScenario("jacks-test-scenario")
+        TestScenarioSupport(dataSource).loadTestScenario("jacks-test-scenario")
 
         val response = template.get("http://localhost:8081/projects", "application/vnd.appcontinuum.v2+json", BasicNameValuePair("accountId", "1673"))
         val list: List<ProjectInfoV2> = mapper.readValue(response, object : TypeReference<List<ProjectInfoV2>>() {})
@@ -72,7 +78,7 @@ class ProjectControllerV2Test : TestControllerSupport() {
 
     @Test
     fun testGet() {
-        TestScenarioSupport().loadTestScenario("jacks-test-scenario")
+        TestScenarioSupport(dataSource).loadTestScenario("jacks-test-scenario")
 
         val response = template.get("http://localhost:8081/project", "application/vnd.appcontinuum.v2+json", BasicNameValuePair("projectId", "55432"))
         val actual = mapper.readValue(response, ProjectInfoV2::class.java)
@@ -87,7 +93,7 @@ class ProjectControllerV2Test : TestControllerSupport() {
 
     @Test
     fun testNotFound() {
-        TestScenarioSupport().loadTestScenario("jacks-test-scenario")
+        TestScenarioSupport(dataSource).loadTestScenario("jacks-test-scenario")
 
         val response = template.get("http://localhost:8081/project", "application/vnd.appcontinuum.v2+json", BasicNameValuePair("projectId", "5280"))
         assert(response.isBlank())

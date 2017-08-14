@@ -4,18 +4,23 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.zaxxer.hikari.HikariDataSource
 
 open class DataSourceConfig {
-    fun createDataSource(): HikariDataSource {
+    fun createDataSource(name: String): HikariDataSource {
         val json = System.getenv("VCAP_SERVICES")
         val dataSource = HikariDataSource()
-        dataSource.jdbcUrl = from(json)
+        dataSource.jdbcUrl = from(name, json)
         return dataSource
     }
 
-    fun from(json: String): String? {
+    fun from(name: String, json: String): String? {
         val mapper = ObjectMapper()
         val root = mapper.readTree(json)
-        val mysql = root.findValue("p-mysql")
-        val credentials = mysql.findValue("credentials")
-        return credentials.findValue("jdbcUrl").textValue()
+        root.findValue("p-mysql").forEach { services ->
+            val node = services.findValue("name")
+            if (node.textValue() == name) {
+                val credentials = services.findValue("credentials")
+                return credentials.findValue("jdbcUrl").textValue()
+            }
+        }
+        return null
     }
 }
