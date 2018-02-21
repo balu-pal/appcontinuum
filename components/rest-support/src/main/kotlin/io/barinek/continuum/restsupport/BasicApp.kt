@@ -9,7 +9,8 @@ import org.slf4j.LoggerFactory
 
 abstract class BasicApp {
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val server: Server
+
+    val server: Server
 
     val mapper: ObjectMapper = ObjectMapper().registerKotlinModule().registerModule(JavaTimeModule())
 
@@ -36,7 +37,7 @@ abstract class BasicApp {
 
     protected abstract fun handlerList(): HandlerList
 
-    fun start() {
+    open fun start() {
         logger.info("App started.")
         server.start()
     }

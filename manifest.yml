@@ -42,3 +42,14 @@ applications:
   - timesheets
   env:
     JAVA_OPTS: -XX:ReservedCodeCacheSize=100M -Xss228k
+
+- name: discovery
+  path: applications/discovery-server/build/libs/discovery-server-1.0-SNAPSHOT.jar
+  memory: 256M
+  instances: 1
+  host: discovery-appcontinuum
+  domain: cfapps.io
+  services:
+  - discovery
+  env:
+    JAVA_OPTS: -XX:ReservedCodeCacheSize=100M -Xss228k
