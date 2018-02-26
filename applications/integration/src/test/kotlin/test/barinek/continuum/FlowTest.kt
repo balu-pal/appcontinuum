@@ -56,7 +56,6 @@ class FlowTest {
         discovery.destroy()
         allocations.destroy()
         backlog.destroy()
-        registration.destroy()
         timesheets.destroy()
     }
 
@@ -134,6 +133,11 @@ class FlowTest {
 
         response = template.get("$timesheetsServer/time-entries", "application/json", BasicNameValuePair("userId", aUserId))
         assert(!response.isNullOrEmpty())
+
+        registration.destroy()
+
+        response = template.post("$timesheetsServer/time-entries", "application/json", """{"projectId":$aProjectId,"userId":$aUserId,"date":"2015-05-18","hours":"8"}""")
+        assertEquals("", response)
     }
 
     /// Test Support
